@@ -11,11 +11,14 @@ import pandas as pd
 import numpy as np
 import re
 from pathlib import Path
+import sys 
+
+BATCH_DIR = Path(sys.argv[1])
 
 # -------------------------------
-# Load Data
+# Load Data (FIX THIS PART)
 # -------------------------------
-file_path = "data/raw/demo_fake_data.csv"  
+file_path = BATCH_DIR / "pccw_form_responses.csv"
 df = pd.read_csv(file_path)
 
 # -------------------------------
@@ -289,8 +292,7 @@ mentees_df = mentees_df[mentee_cols]
 # -------------------------------
 # Save
 # -------------------------------
-OUTPUT_DIR = Path("data/cleaned")
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-mentors_df.to_csv(OUTPUT_DIR / "mentors_clean.csv", index=False)
-mentees_df.to_csv(OUTPUT_DIR /"mentees_clean.csv", index=False)
+
+mentors_df.to_csv(BATCH_DIR/ "mentors_clean.csv", index=False)
+mentees_df.to_csv(BATCH_DIR /"mentees_clean.csv", index=False)
 

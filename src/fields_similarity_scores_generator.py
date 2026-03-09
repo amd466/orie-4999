@@ -10,6 +10,9 @@ Original file is located at
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import sys 
+
+BATCH_DIR = Path(sys.argv[1])
 
 # ------------------------------------------------------------
 # 1. Field list
@@ -240,8 +243,7 @@ for a, b in extremely_unlikely:
 # ------------------------------------------------------------
 # 8. Save
 # ------------------------------------------------------------
-OUTPUT_DIR = Path("data/cleaned")
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-S.to_csv(OUTPUT_DIR / "field_similarity_matrix.csv", index=False)
+
+S.to_csv(BATCH_DIR / "field_similarity_matrix.csv", index=False)
 print(f"Shape: {S.shape}")
 print(f"Mean off-diagonal similarity: {S.values[np.triu_indices_from(S, 1)].mean():.3f}")

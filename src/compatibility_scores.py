@@ -11,14 +11,16 @@ import pandas as pd
 import numpy as np
 import re
 from pathlib import Path
+import sys 
+
+BATCH_DIR = Path(sys.argv[1])
 
 # ======================================================
 # 1. Load cleaned data
 # ======================================================
-file_path = Path("data/cleaned")
-mentors = pd.read_csv(file_path / "mentors_clean.csv")
-mentees = pd.read_csv(file_path / "mentees_clean.csv")
-S = pd.read_csv(file_path / "field_similarity_matrix.csv", index_col=0)
+mentors = pd.read_csv(BATCH_DIR / "mentors_clean.csv")
+mentees = pd.read_csv(BATCH_DIR / "mentees_clean.csv")
+S = pd.read_csv(BATCH_DIR / "field_similarity_matrix.csv", index_col=0)
 
 # ======================================================
 # 2. Parameters
@@ -140,9 +142,8 @@ for _, mnt_row in mentees.iterrows():
 # ======================================================
 # 5. Save and summarize
 # ======================================================
-OUTPUT_DIR = Path("data/cleaned")
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-comp_matrix.to_csv(OUTPUT_DIR /"compatibility_matrix.csv" , index = False)
+
+comp_matrix.to_csv(BATCH_DIR /"compatibility_matrix.csv" , index = False)
 print("✅ Compatibility matrix saved as 'compatibility_matrix.csv'")
 print(f"Shape: {comp_matrix.shape}")
 print(f"Average compatibility: {comp_matrix.values.mean():.3f}")

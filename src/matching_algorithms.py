@@ -15,9 +15,10 @@ Original file is located at
 import pandas as pd
 import numpy as np
 import pulp
-import zipfile
+import sys
 from pathlib import Path
 
+BATCH_DIR = Path(sys.argv[1])
 RESULTS_DIR = Path("results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -199,7 +200,7 @@ if not matched_df.empty:
     )
 
 # Save matched pairs
-matched_df.to_csv(RESULTS_DIR / "matched_pairs.csv", index=False)
+matched_df.to_csv(BATCH_DIR / "matched_pairs.csv", index=False)
 
 # ---------- Remaining mentors (FULL INFO, explicit Name column) ----------
 used_counts = matched_df["Mentor"].value_counts().to_dict()
@@ -248,7 +249,7 @@ if remaining_mentors:
 else:
     full_remaining_df = pd.DataFrame(columns=mentor_cols_ordered)
 
-full_remaining_df.to_csv(RESULTS_DIR /"mentors_remaining_capacity.csv", index=False)
+full_remaining_df.to_csv(BATCH_DIR /"mentors_remaining_capacity.csv", index=False)
 
 # ---------- Unmatched mentees (full profile, explicit Name column) ----------
 matched_mentees = set(matched_df["Mentee"])
@@ -266,7 +267,7 @@ else:
     # empty with same columns as mentees_clean.csv
     unmatched_df = pd.DataFrame(columns=list(mentees.columns))
 
-unmatched_df.to_csv(RESULTS_DIR / "unmatched_mentees.csv", index=False)
+unmatched_df.to_csv(BATCH_DIR / "unmatched_mentees.csv", index=False)
 
 # ---------- Report + ZIP download ----------
 num_pairs = len(matched_df)
