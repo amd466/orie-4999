@@ -18,7 +18,6 @@ def evaluate_batch(batch_path):
 
     n_matched = len(matched)
     n_unmatched = len(unmatched)
-
     coverage = n_matched / (n_matched + n_unmatched)
 
     # -------------------------
@@ -54,10 +53,31 @@ def evaluate_batch(batch_path):
     # -------------------------
 
     compatible = comp_matrix[comp_matrix["compatibility_score"] > 0]
-
     opp_counts = compatible.groupby("mentee_id")["mentor_id"].nunique()
-
     avg_opportunities = opp_counts.mean()
+
+    # -------------------------
+    # Mentor Load Balance      
+    # -------------------------
+    mentor_loads = matched["Mentor"].value_counts()
+    load_mean = mentor_loads.mean()
+    load_std = mentor_loads.std()
+    load_cv = load_std / load_mean
+
+    loads_sorted = sorted(mentor_loads.values)
+    n = len(loads_sorted)
+    gini = (
+        2 * sum((i+1) * v for i, v in enumerate(loads_sorted))
+    ) / (n * sum(loads_sorted)) - (n+1)/n
+
+    # -------------------------
+    # Score Percentile Distribution
+    # -------------------------
+    pct_above_05 = (matched["Compatibility_Score"] >= 0.50).mean()
+    pct_above_06 = (matched["Compatibility_Score"] >= 0.60).mean()
+    pct_above_07 = (matched["Compatibility_Score"] >= 0.70).mean()
+    pct_above_08 = (matched["Compatibility_Score"] >= 0.80).mean()
+    pct_above_09 = (matched["Compatibility_Score"] >= 0.90).mean()
 
     return {
         "batch": batch_path.name,
@@ -69,6 +89,13 @@ def evaluate_batch(batch_path):
         "avg_field_similarity": avg_field_similarity,
         "remaining_capacity": remaining_capacity,
         "avg_compatible_mentors": avg_opportunities,
+        "load_cv": load_cv,
+        "gini": gini,
+        "pct_above_05": pct_above_05,
+        "pct_above_06": pct_above_06,
+        "pct_above_07": pct_above_07,
+        "pct_above_08": pct_above_08,
+        "pct_above_09": pct_above_09,
     }
 
 
@@ -103,6 +130,24 @@ def plot_metrics(df):
     plt.title("Opportunity Inequality")
     plt.ylabel("Avg Compatible Mentors")
     plt.xlabel("Batch")
+    plt.show()
+
+    plt.plot(df["batch"], df["gini"], marker="o")
+    plt.title("Mentor Load Balance (Gini Coefficient)")
+    plt.ylabel("Gini Coefficient")
+    plt.xlabel("Batch")
+    plt.show()
+
+    plt.figure()
+    plt.bar(
+        ["≥0.5", "≥0.6", "≥0.7", "≥0.8", "≥0.9"],
+        [df["pct_above_05"].mean(), df["pct_above_06"].mean(),
+         df["pct_above_07"].mean(), df["pct_above_08"].mean(),
+         df["pct_above_09"].mean()]
+    )
+    plt.title("Score Percentile Distribution")
+    plt.ylabel("% of Matches")
+    plt.xlabel("Compatibility Score Threshold")
     plt.show()
 
 
