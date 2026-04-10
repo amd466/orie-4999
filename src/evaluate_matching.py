@@ -11,50 +11,38 @@ def evaluate_batch(batch_path):
     mentors_remaining = pd.read_csv(batch_path / "mentors_remaining_capacity.csv")
     comp_matrix = pd.read_csv(batch_path / "compatibility_matrix.csv")
 
-    # -------------------------
     # Coverage
-    # -------------------------
     n_matched = len(matched)
     n_unmatched = len(unmatched)
     coverage = n_matched / (n_matched + n_unmatched)
 
-    # -------------------------
     # Compatibility score stats
-    # -------------------------
     mean_score = matched["Compatibility_Score"].mean()
     median_score = matched["Compatibility_Score"].median()
     std_score = matched["Compatibility_Score"].std()
 
-    # -------------------------
     # Mentor depletion
-    # -------------------------
     remaining_capacity = mentors_remaining["Remaining_Capacity"].sum()
 
-    # -------------------------
     # Opportunity inequality
-    # -------------------------
     compatible = comp_matrix[comp_matrix["Compatibility_Score"] > 0]
     opp_counts = compatible.groupby("mentee_id")["mentor_id"].nunique()
     avg_opportunities = opp_counts.mean()
 
-    # -------------------------
     # Mentor load balance
-    # -------------------------
     mentor_loads = matched["Mentor"].value_counts()
     load_mean = mentor_loads.mean()
     load_std = mentor_loads.std()
-    load_cv = load_std / load_mean  # coefficient of variation; lower = more balanced
+    load_cv = load_std / load_mean  #coefficient of variation; lower = more balanced
 
     loads_sorted = sorted(mentor_loads.values)
     n = len(loads_sorted)
     gini = (
         2 * sum((i + 1) * v for i, v in enumerate(loads_sorted))
     ) / (n * sum(loads_sorted)) - (n + 1) / n
-    # Gini coefficient: 0 = perfectly equal load, 1 = fully concentrated
+    #Gini coefficient: 0 = perfectly equal load, 1 = fully concentrated
 
-    # -------------------------
     # Score percentile distribution
-    # -------------------------
     pct_above_05 = (matched["Compatibility_Score"] >= 0.50).mean()
     pct_above_06 = (matched["Compatibility_Score"] >= 0.60).mean()
     pct_above_07 = (matched["Compatibility_Score"] >= 0.70).mean()
