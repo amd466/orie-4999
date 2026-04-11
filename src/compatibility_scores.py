@@ -143,7 +143,7 @@ for _, mnt_row in mentees.iterrows():
 # 5. Save and summarize
 # ======================================================
 
-comp_matrix.to_csv(BATCH_DIR /"compatibility_matrix.csv" , index = False)
+comp_matrix.to_csv(BATCH_DIR /"compatibility_matrix.csv" , index = True)
 print("✅ Compatibility matrix saved as 'compatibility_matrix.csv'")
 print(f"Shape: {comp_matrix.shape}")
 print(f"Average compatibility: {comp_matrix.values.mean():.3f}")

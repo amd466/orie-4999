@@ -16,8 +16,10 @@ RESULTS_ROOT = ROOT / "results"
 
 batch_num = int(BATCH_DIR.name.split("_")[1])
 
-form_df = pd.read_csv(ROOT / "data/raw/fake_combined_mentor_mentee_form_responses_250.csv")
+form_df = pd.read_csv(ROOT / "data/raw/testA.csv")
 output_file = BATCH_DIR / "pccw_form_responses.csv"
+print(form_df.shape)
+print(form_df.head(3))
 
 # -------------------------------
 # Batch 1: just save raw input

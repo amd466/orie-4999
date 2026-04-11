@@ -23,7 +23,8 @@ RESULTS_DIR = Path("results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------- Load data ----------
-file_path = Path("data/cleaned")
+file_path = BATCH_DIR
+print(file_path)
 mentors = pd.read_csv(file_path / "mentors_clean.csv")
 mentees = pd.read_csv(file_path / "mentees_clean.csv")
 C = pd.read_csv(file_path / "compatibility_matrix.csv", index_col=0)
@@ -34,7 +35,7 @@ mentors_list = [m for m in C.columns if m in set(mentors["Name"])]
 C = C.loc[mentees_list, mentors_list].copy()
 
 # ---------- Parameters ----------
-TAU = 0.40      # minimum compatibility threshold
+TAU = 0.20      # minimum compatibility threshold
 SOLVER_TIME_LIMIT = None  # you can set a time limit in seconds if needed
 
 # ---------- Mentor capacity + prefs ----------
@@ -81,11 +82,11 @@ mentee_org = mentees.set_index("Name")["Organization"].reindex(mentees_list)
 
 # ---------- Info dictionaries ----------
 mentee_info = mentees.set_index("Name")[
-    ["Email", "Phone_Number", "Bio", "Additional_Notes"]
+    ["Email", "Phone_Number", "Bio", "Additional_Notes" , "Field_1" ,"Field_2" ,"Field_3", "Field_4" , "Field_5"]
 ].to_dict(orient="index")
 
 mentor_info = mentors.set_index("Name")[
-    ["Email", "Phone_Number", "Bio", "Additional_Notes"]
+    ["Email", "Phone_Number", "Bio", "Additional_Notes", "Field_1" ,"Field_2" ,"Field_3", "Field_4" , "Field_5"]
 ].to_dict(orient="index")
 
 def _get(d, name, field):
@@ -165,6 +166,26 @@ if not matched_df.empty:
         lambda n: _get(mentee_info, n, "Additional_Notes")
     )
 
+    matched_df["Mentee_Field_1"] = matched_df["Mentee"].apply(
+        lambda n: _get(mentee_info, n, "Field_1")
+    )
+
+    matched_df["Mentee_Field_2"] = matched_df["Mentee"].apply(
+        lambda n: _get(mentee_info, n, "Field_2")
+    )
+
+    matched_df["Mentee_Field_3"] = matched_df["Mentee"].apply(
+        lambda n: _get(mentee_info, n, "Field_3")
+    )
+
+    matched_df["Mentee_Field_4"] = matched_df["Mentee"].apply(
+        lambda n: _get(mentee_info, n, "Field_4")
+    )
+
+    matched_df["Mentee_Field_5"] = matched_df["Mentee"].apply(
+        lambda n: _get(mentee_info, n, "Field_5")
+    )
+
     matched_df["Mentor_Email"] = matched_df["Mentor"].apply(
         lambda n: _get(mentor_info, n, "Email")
     )
@@ -178,26 +199,60 @@ if not matched_df.empty:
         lambda n: _get(mentor_info, n, "Additional_Notes")
     )
 
+    matched_df["Mentor_Field_1"] = matched_df["Mentor"].apply(
+        lambda n: _get(mentor_info, n, "Field_1"))
+
+    matched_df["Mentor_Field_2"] = matched_df["Mentor"].apply(
+        lambda n: _get(mentor_info, n, "Field_2")
+        )
+
+    matched_df["Mentor_Field_3"] = matched_df["Mentor"].apply(
+        lambda n: _get(mentor_info, n, "Field_3")
+        )
+
+    matched_df["Mentor_Field_4"] = matched_df["Mentor"].apply(
+        lambda n: _get(mentor_info, n, "Field_4")
+    )
+
+    matched_df["Mentor_Field_5"] = matched_df["Mentor"].apply(
+        lambda n: _get(mentor_info, n, "Field_5")
+    )
+
     matched_df = matched_df[
-        [
-            "Mentee",
-            "Mentee_Email",
-            "Mentee_Phone",
-            "Mentee_Organization",
-            "Mentee_Bio",
-            "Mentee_Additional_Notes",
-            "Mentor",
-            "Mentor_Email",
-            "Mentor_Phone",
-            "Mentor_Bio",
-            "Mentor_Additional_Notes",
-            "Compatibility_Score",
-        ]
+    [
+        "Mentee",
+        "Mentee_Email",
+        "Mentee_Phone",
+        "Mentee_Organization",
+        "Mentee_Bio",
+        "Mentee_Additional_Notes",
+
+        "Mentee_Field_1",
+        "Mentee_Field_2",
+        "Mentee_Field_3",
+        "Mentee_Field_4",
+        "Mentee_Field_5",
+
+        "Mentor",
+        "Mentor_Email",
+        "Mentor_Phone",
+        "Mentor_Bio",
+        "Mentor_Additional_Notes",
+
+        "Mentor_Field_1",
+        "Mentor_Field_2",
+        "Mentor_Field_3",
+        "Mentor_Field_4",
+        "Mentor_Field_5",
+
+        "Compatibility_Score",
     ]
+]
 
     matched_df = matched_df.sort_values(
         by=["Mentee_Organization", "Mentee"]
     )
+
 
 # Save matched pairs
 matched_df.to_csv(BATCH_DIR / "matched_pairs.csv", index=False)

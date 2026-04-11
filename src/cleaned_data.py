@@ -295,4 +295,3 @@ mentees_df = mentees_df[mentee_cols]
 
 mentors_df.to_csv(BATCH_DIR/ "mentors_clean.csv", index=False)
 mentees_df.to_csv(BATCH_DIR /"mentees_clean.csv", index=False)
-
