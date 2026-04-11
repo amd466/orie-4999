@@ -327,4 +327,5 @@ unmatched_df.to_csv(BATCH_DIR / "unmatched_mentees.csv", index=False)
 # ---------- Report + ZIP download ----------
 num_pairs = len(matched_df)
 num_unmatched = len(unmatched_df)
+
 print(f"✅ Matching complete — {num_pairs} pairs, {num_unmatched} unmatched mentees.")
