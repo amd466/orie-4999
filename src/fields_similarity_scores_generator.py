@@ -10,7 +10,7 @@ Original file is located at
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import sys 
+import sys
 
 BATCH_DIR = Path(sys.argv[1])
 
@@ -33,9 +33,12 @@ fields = [
 ]
 
 # ------------------------------------------------------------
-# 2. Base matrix
+# 2. Base matrix  (no longer a blanket 0.15 — every pair is
+#    set explicitly below; this diagonal-only init is just a
+#    safe fallback so missing pairs surface as 0.0 rather than
+#    a misleadingly plausible number)
 # ------------------------------------------------------------
-S = pd.DataFrame(0.15, index=fields, columns=fields)
+S = pd.DataFrame(0.0, index=fields, columns=fields)
 for f in fields:
     S.loc[f, f] = 1.0
 
@@ -90,7 +93,7 @@ weak = {
     ("Journalism, publishing and communications", "Marketing"): 0.50,
     ("Engineering", "Law and legal services"): 0.15,
     ("Finance, investment and financial services", "Public service and government"): 0.38,
-    ("Medicine and healthcare", "Public service and government"): 0.15,
+    ("Medicine and healthcare", "Public service and government"): 0.25,
     ("Energy, sustainability and the environment", "Public service and government"): 0.50,
     ("Entrepreneurship and startups", "Policy and advocacy"): 0.45,
     ("Psychology and social work", "Law and legal services"): 0.50,
@@ -165,7 +168,7 @@ manual = {
     ("Non-profit and social enterprise", "Business"): 0.50,
 
     # Policy & Media
-    ("Policy and advocacy", "Media and entertainment"): 0.15,
+    ("Policy and advocacy", "Media and entertainment"): 0.25,
 
     # Public Service
     ("Public service and government", "Law and legal services"): 0.78,
@@ -176,8 +179,8 @@ manual = {
     ("Real estate", "Law and legal services"): 0.15,
 
     # Medicine
-    ("Medicine and healthcare", "Education"): 0.15,
-    ("Medicine and healthcare", "Policy and advocacy"): 0.15,
+    ("Medicine and healthcare", "Education"): 0.30,
+    ("Medicine and healthcare", "Policy and advocacy"): 0.30,
 
     # Veterinary cluster
     ("Veterinary medicine", "Medicine and healthcare"): 0.70,
@@ -229,21 +232,421 @@ extremely_unlikely = [
 ]
 
 # ------------------------------------------------------------
-# 7. Apply all mappings
+# 7. Previously-defaulted pairs — all 325 now set explicitly
+#
+#    Scoring rubric (career / professional similarity):
+#      0.80–0.95  very strong overlap (near-identical skills, common transitions)
+#      0.60–0.79  meaningful overlap  (frequent bridging, strong skill transfer)
+#      0.40–0.59  moderate overlap    (some shared skills, occasional transitions)
+#      0.20–0.39  limited overlap     (rare transitions, surface commonality)
+#      0.05–0.19  very low            (almost no professional overlap)
 # ------------------------------------------------------------
-for group in (strong_within, cross, weak, manual):
+previously_defaulted = {
+    # ── Academia and research ──────────────────────────────────────────────
+    ("Academia and research", "Architecture and urban planning"): 0.35,   # urban/planning research
+    ("Academia and research", "Business"): 0.25,
+    ("Academia and research", "Consulting and strategy"): 0.30,           # PhDs recruited by consulting
+    ("Academia and research", "Corporate and general management"): 0.20,
+    ("Academia and research", "Creative fields"): 0.20,
+    ("Academia and research", "Design"): 0.22,
+    ("Academia and research", "Energy, sustainability and the environment"): 0.50,  # research-heavy domain
+    ("Academia and research", "Finance, investment and financial services"): 0.22,
+    ("Academia and research", "Health and wellness"): 0.30,
+    ("Academia and research", "Hospitality"): 0.10,
+    ("Academia and research", "Human resources"): 0.18,
+    ("Academia and research", "IT and technology"): 0.55,                 # CS/ML research pipeline
+    ("Academia and research", "Journalism, publishing and communications"): 0.40,  # publishing, science comms
+    ("Academia and research", "Law and legal services"): 0.25,            # legal academia, policy research
+    ("Academia and research", "Marketing"): 0.18,
+    ("Academia and research", "Media and entertainment"): 0.18,
+    ("Academia and research", "Medicine and healthcare"): 0.55,           # clinical research, med school
+    ("Academia and research", "Psychology and social work"): 0.50,        # psych research pipeline
+    ("Academia and research", "Public service and government"): 0.38,
+    ("Academia and research", "Real estate"): 0.12,
+    ("Academia and research", "Retail and consumer goods"): 0.10,
+    ("Academia and research", "Veterinary medicine"): 0.38,               # vet research/academia
+
+    # ── Architecture and urban planning ───────────────────────────────────
+    ("Architecture and urban planning", "Biotech, pharmaceutical, life sciences, and medical devices"): 0.08,
+    ("Architecture and urban planning", "Corporate and general management"): 0.18,
+    ("Architecture and urban planning", "Creative fields"): 0.55,         # strong aesthetic overlap
+    ("Architecture and urban planning", "Data and analytics"): 0.28,      # urban data, GIS
+    ("Architecture and urban planning", "Education"): 0.30,
+    ("Architecture and urban planning", "Entrepreneurship and startups"): 0.28,
+    ("Architecture and urban planning", "Finance, investment and financial services"): 0.25,
+    ("Architecture and urban planning", "Health and wellness"): 0.22,
+    ("Architecture and urban planning", "Hospitality"): 0.38,             # spatial design overlap
+    ("Architecture and urban planning", "Human resources"): 0.10,
+    ("Architecture and urban planning", "IT and technology"): 0.25,
+    ("Architecture and urban planning", "Journalism, publishing and communications"): 0.20,
+    ("Architecture and urban planning", "Marketing"): 0.18,
+    ("Architecture and urban planning", "Media and entertainment"): 0.22,
+    ("Architecture and urban planning", "Non-profit and social enterprise"): 0.30,  # community development
+    ("Architecture and urban planning", "Psychology and social work"): 0.20,
+    ("Architecture and urban planning", "Retail and consumer goods"): 0.18,  # retail space design
+
+    # ── Biotech, pharmaceutical, life sciences, and medical devices ────────
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Business"): 0.35,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Corporate and general management"): 0.30,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Data and analytics"): 0.55,   # bioinformatics
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Design"): 0.18,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Education"): 0.30,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Entrepreneurship and startups"): 0.45,  # life-sci startups
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Finance, investment and financial services"): 0.35,  # biotech VC
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Hospitality"): 0.05,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Human resources"): 0.15,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "IT and technology"): 0.45,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Journalism, publishing and communications"): 0.20,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Law and legal services"): 0.25,  # IP / FDA law
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Marketing"): 0.25,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Non-profit and social enterprise"): 0.22,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Policy and advocacy"): 0.35,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Psychology and social work"): 0.18,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Public service and government"): 0.25,
+    ("Biotech, pharmaceutical, life sciences, and medical devices", "Retail and consumer goods"): 0.15,
+
+    # ── Business ──────────────────────────────────────────────────────────
+    ("Business", "Education"): 0.30,
+    ("Business", "Energy, sustainability and the environment"): 0.35,
+    ("Business", "Engineering"): 0.35,
+    ("Business", "Entrepreneurship and startups"): 0.75,
+    ("Business", "Health and wellness"): 0.35,
+    ("Business", "Journalism, publishing and communications"): 0.30,
+    ("Business", "Marketing"): 0.80,
+    ("Business", "Media and entertainment"): 0.45,
+    ("Business", "Medicine and healthcare"): 0.25,
+    ("Business", "Veterinary medicine"): 0.12,
+
+    # ── Consulting and strategy ────────────────────────────────────────────
+    ("Consulting and strategy", "Corporate and general management"): 0.78,
+    ("Consulting and strategy", "Creative fields"): 0.20,
+    ("Consulting and strategy", "Design"): 0.35,
+    ("Consulting and strategy", "Education"): 0.28,
+    ("Consulting and strategy", "Energy, sustainability and the environment"): 0.45,
+    ("Consulting and strategy", "Engineering"): 0.45,
+    ("Consulting and strategy", "Entrepreneurship and startups"): 0.60,
+    ("Consulting and strategy", "Health and wellness"): 0.30,
+    ("Consulting and strategy", "Hospitality"): 0.30,
+    ("Consulting and strategy", "Human resources"): 0.50,
+    ("Consulting and strategy", "Journalism, publishing and communications"): 0.22,
+    ("Consulting and strategy", "Law and legal services"): 0.45,
+    ("Consulting and strategy", "Marketing"): 0.58,
+    ("Consulting and strategy", "Media and entertainment"): 0.28,
+    ("Consulting and strategy", "Medicine and healthcare"): 0.30,
+    ("Consulting and strategy", "Non-profit and social enterprise"): 0.35,
+    ("Consulting and strategy", "Policy and advocacy"): 0.48,
+    ("Consulting and strategy", "Psychology and social work"): 0.20,
+    ("Consulting and strategy", "Public service and government"): 0.42,
+    ("Consulting and strategy", "Real estate"): 0.42,
+    ("Consulting and strategy", "Retail and consumer goods"): 0.40,
+    ("Consulting and strategy", "Veterinary medicine"): 0.08,
+
+    # ── Corporate and general management ──────────────────────────────────
+    ("Corporate and general management", "Creative fields"): 0.20,
+    ("Corporate and general management", "Data and analytics"): 0.55,
+    ("Corporate and general management", "Design"): 0.28,
+    ("Corporate and general management", "Education"): 0.28,
+    ("Corporate and general management", "Energy, sustainability and the environment"): 0.38,
+    ("Corporate and general management", "Engineering"): 0.40,
+    ("Corporate and general management", "Entrepreneurship and startups"): 0.65,
+    ("Corporate and general management", "Health and wellness"): 0.30,
+    ("Corporate and general management", "Hospitality"): 0.50,
+    ("Corporate and general management", "Journalism, publishing and communications"): 0.22,
+    ("Corporate and general management", "Law and legal services"): 0.42,
+    ("Corporate and general management", "Marketing"): 0.62,
+    ("Corporate and general management", "Media and entertainment"): 0.35,
+    ("Corporate and general management", "Medicine and healthcare"): 0.22,
+    ("Corporate and general management", "Non-profit and social enterprise"): 0.38,
+    ("Corporate and general management", "Policy and advocacy"): 0.35,
+    ("Corporate and general management", "Psychology and social work"): 0.18,
+    ("Corporate and general management", "Public service and government"): 0.38,
+    ("Corporate and general management", "Real estate"): 0.48,
+    ("Corporate and general management", "Retail and consumer goods"): 0.55,
+    ("Corporate and general management", "Veterinary medicine"): 0.08,
+
+    # ── Creative fields ────────────────────────────────────────────────────
+    ("Creative fields", "Data and analytics"): 0.15,
+    ("Creative fields", "Education"): 0.40,
+    ("Creative fields", "Energy, sustainability and the environment"): 0.18,
+    ("Creative fields", "Entrepreneurship and startups"): 0.45,
+    ("Creative fields", "Finance, investment and financial services"): 0.12,
+    ("Creative fields", "Health and wellness"): 0.25,
+    ("Creative fields", "Hospitality"): 0.38,
+    ("Creative fields", "Human resources"): 0.15,
+    ("Creative fields", "IT and technology"): 0.38,
+    ("Creative fields", "Journalism, publishing and communications"): 0.55,
+    ("Creative fields", "Law and legal services"): 0.12,
+    ("Creative fields", "Marketing"): 0.65,
+    ("Creative fields", "Media and entertainment"): 0.70,
+    ("Creative fields", "Non-profit and social enterprise"): 0.30,
+    ("Creative fields", "Policy and advocacy"): 0.15,
+    ("Creative fields", "Psychology and social work"): 0.22,
+    ("Creative fields", "Public service and government"): 0.12,
+    ("Creative fields", "Real estate"): 0.15,
+    ("Creative fields", "Retail and consumer goods"): 0.38,
+    ("Creative fields", "Veterinary medicine"): 0.05,
+
+    # ── Data and analytics ─────────────────────────────────────────────────
+    ("Data and analytics", "Design"): 0.32,
+    ("Data and analytics", "Energy, sustainability and the environment"): 0.45,
+    ("Data and analytics", "Entrepreneurship and startups"): 0.55,
+    ("Data and analytics", "Hospitality"): 0.22,
+    ("Data and analytics", "Journalism, publishing and communications"): 0.35,
+    ("Data and analytics", "Law and legal services"): 0.22,
+    ("Data and analytics", "Media and entertainment"): 0.35,
+    ("Data and analytics", "Medicine and healthcare"): 0.55,
+    ("Data and analytics", "Non-profit and social enterprise"): 0.30,
+    ("Data and analytics", "Policy and advocacy"): 0.42,
+    ("Data and analytics", "Psychology and social work"): 0.32,
+    ("Data and analytics", "Public service and government"): 0.38,
+    ("Data and analytics", "Real estate"): 0.35,
+    ("Data and analytics", "Retail and consumer goods"): 0.45,
+
+    # ── Design ─────────────────────────────────────────────────────────────
+    ("Design", "Energy, sustainability and the environment"): 0.22,
+    ("Design", "Engineering"): 0.48,           # industrial / product design
+    ("Design", "Finance, investment and financial services"): 0.15,
+    ("Design", "Health and wellness"): 0.28,
+    ("Design", "Hospitality"): 0.42,
+    ("Design", "Human resources"): 0.15,
+    ("Design", "Journalism, publishing and communications"): 0.38,
+    ("Design", "Marketing"): 0.65,
+    ("Design", "Medicine and healthcare"): 0.20,
+    ("Design", "Non-profit and social enterprise"): 0.28,
+    ("Design", "Policy and advocacy"): 0.15,
+    ("Design", "Psychology and social work"): 0.18,
+    ("Design", "Public service and government"): 0.15,
+    ("Design", "Real estate"): 0.28,
+    ("Design", "Retail and consumer goods"): 0.50,
+    ("Design", "Veterinary medicine"): 0.05,
+
+    # ── Education ──────────────────────────────────────────────────────────
+    ("Education", "Energy, sustainability and the environment"): 0.28,
+    ("Education", "Engineering"): 0.25,
+    ("Education", "Entrepreneurship and startups"): 0.28,
+    ("Education", "Finance, investment and financial services"): 0.18,
+    ("Education", "Hospitality"): 0.18,
+    ("Education", "Human resources"): 0.42,
+    ("Education", "Journalism, publishing and communications"): 0.42,
+    ("Education", "Law and legal services"): 0.28,
+    ("Education", "Marketing"): 0.25,
+    ("Education", "Media and entertainment"): 0.30,
+    ("Education", "Medicine and healthcare"): 0.30,
+    ("Education", "Non-profit and social enterprise"): 0.58,
+    ("Education", "Psychology and social work"): 0.55,
+    ("Education", "Real estate"): 0.12,
+    ("Education", "Retail and consumer goods"): 0.15,
+
+    # ── Energy, sustainability and the environment ─────────────────────────
+    ("Energy, sustainability and the environment", "Entrepreneurship and startups"): 0.48,
+    ("Energy, sustainability and the environment", "Finance, investment and financial services"): 0.42,
+    ("Energy, sustainability and the environment", "Health and wellness"): 0.35,
+    ("Energy, sustainability and the environment", "Hospitality"): 0.22,
+    ("Energy, sustainability and the environment", "Human resources"): 0.15,
+    ("Energy, sustainability and the environment", "IT and technology"): 0.50,
+    ("Energy, sustainability and the environment", "Journalism, publishing and communications"): 0.35,
+    ("Energy, sustainability and the environment", "Law and legal services"): 0.35,
+    ("Energy, sustainability and the environment", "Marketing"): 0.25,
+    ("Energy, sustainability and the environment", "Medicine and healthcare"): 0.22,
+    ("Energy, sustainability and the environment", "Non-profit and social enterprise"): 0.55,
+    ("Energy, sustainability and the environment", "Policy and advocacy"): 0.65,
+    ("Energy, sustainability and the environment", "Psychology and social work"): 0.20,
+    ("Energy, sustainability and the environment", "Real estate"): 0.32,
+    ("Energy, sustainability and the environment", "Retail and consumer goods"): 0.22,
+    ("Energy, sustainability and the environment", "Veterinary medicine"): 0.20,
+
+    # ── Engineering ────────────────────────────────────────────────────────
+    ("Engineering", "Entrepreneurship and startups"): 0.55,
+    ("Engineering", "Finance, investment and financial services"): 0.28,
+    ("Engineering", "Health and wellness"): 0.20,
+    ("Engineering", "Human resources"): 0.12,
+    ("Engineering", "IT and technology"): 0.78,
+    ("Engineering", "Marketing"): 0.15,
+    ("Engineering", "Media and entertainment"): 0.15,
+    ("Engineering", "Medicine and healthcare"): 0.30,
+    ("Engineering", "Non-profit and social enterprise"): 0.20,
+    ("Engineering", "Policy and advocacy"): 0.22,
+    ("Engineering", "Retail and consumer goods"): 0.18,
+    ("Engineering", "Veterinary medicine"): 0.10,
+
+    # ── Entrepreneurship and startups ──────────────────────────────────────
+    ("Entrepreneurship and startups", "Health and wellness"): 0.40,
+    ("Entrepreneurship and startups", "Hospitality"): 0.45,
+    ("Entrepreneurship and startups", "Human resources"): 0.40,
+    ("Entrepreneurship and startups", "IT and technology"): 0.72,
+    ("Entrepreneurship and startups", "Journalism, publishing and communications"): 0.32,
+    ("Entrepreneurship and startups", "Law and legal services"): 0.35,
+    ("Entrepreneurship and startups", "Media and entertainment"): 0.40,
+    ("Entrepreneurship and startups", "Medicine and healthcare"): 0.28,
+    ("Entrepreneurship and startups", "Non-profit and social enterprise"): 0.45,
+    ("Entrepreneurship and startups", "Psychology and social work"): 0.20,
+    ("Entrepreneurship and startups", "Public service and government"): 0.25,
+    ("Entrepreneurship and startups", "Real estate"): 0.45,
+    ("Entrepreneurship and startups", "Retail and consumer goods"): 0.55,
+    ("Entrepreneurship and startups", "Veterinary medicine"): 0.12,
+
+    # ── Finance, investment and financial services ─────────────────────────
+    ("Finance, investment and financial services", "Health and wellness"): 0.22,
+    ("Finance, investment and financial services", "Hospitality"): 0.30,
+    ("Finance, investment and financial services", "Human resources"): 0.28,
+    ("Finance, investment and financial services", "Journalism, publishing and communications"): 0.30,
+    ("Finance, investment and financial services", "Law and legal services"): 0.55,
+    ("Finance, investment and financial services", "Marketing"): 0.38,
+    ("Finance, investment and financial services", "Media and entertainment"): 0.22,
+    ("Finance, investment and financial services", "Non-profit and social enterprise"): 0.28,
+    ("Finance, investment and financial services", "Policy and advocacy"): 0.38,
+    ("Finance, investment and financial services", "Psychology and social work"): 0.15,
+    ("Finance, investment and financial services", "Retail and consumer goods"): 0.42,
+    ("Finance, investment and financial services", "Veterinary medicine"): 0.05,
+
+    # ── Health and wellness ────────────────────────────────────────────────
+    ("Health and wellness", "Hospitality"): 0.35,
+    ("Health and wellness", "Human resources"): 0.30,
+    ("Health and wellness", "IT and technology"): 0.35,
+    ("Health and wellness", "Journalism, publishing and communications"): 0.30,
+    ("Health and wellness", "Law and legal services"): 0.18,
+    ("Health and wellness", "Marketing"): 0.38,
+    ("Health and wellness", "Media and entertainment"): 0.28,
+    ("Health and wellness", "Medicine and healthcare"): 0.65,
+    ("Health and wellness", "Policy and advocacy"): 0.38,
+    ("Health and wellness", "Psychology and social work"): 0.60,
+    ("Health and wellness", "Public service and government"): 0.30,
+    ("Health and wellness", "Real estate"): 0.15,
+    ("Health and wellness", "Retail and consumer goods"): 0.35,
+    ("Health and wellness", "Veterinary medicine"): 0.35,
+
+    # ── Hospitality ────────────────────────────────────────────────────────
+    ("Hospitality", "Human resources"): 0.45,
+    ("Hospitality", "IT and technology"): 0.30,
+    ("Hospitality", "Journalism, publishing and communications"): 0.28,
+    ("Hospitality", "Marketing"): 0.58,
+    ("Hospitality", "Media and entertainment"): 0.42,
+    ("Hospitality", "Medicine and healthcare"): 0.15,
+    ("Hospitality", "Non-profit and social enterprise"): 0.28,
+    ("Hospitality", "Policy and advocacy"): 0.15,
+    ("Hospitality", "Psychology and social work"): 0.25,
+    ("Hospitality", "Public service and government"): 0.22,
+    ("Hospitality", "Real estate"): 0.45,
+    ("Hospitality", "Veterinary medicine"): 0.08,
+
+    # ── Human resources ────────────────────────────────────────────────────
+    ("Human resources", "IT and technology"): 0.38,
+    ("Human resources", "Journalism, publishing and communications"): 0.22,
+    ("Human resources", "Law and legal services"): 0.40,
+    ("Human resources", "Marketing"): 0.38,
+    ("Human resources", "Media and entertainment"): 0.22,
+    ("Human resources", "Medicine and healthcare"): 0.22,
+    ("Human resources", "Non-profit and social enterprise"): 0.45,
+    ("Human resources", "Policy and advocacy"): 0.28,
+    ("Human resources", "Psychology and social work"): 0.55,
+    ("Human resources", "Public service and government"): 0.45,
+    ("Human resources", "Real estate"): 0.22,
+    ("Human resources", "Retail and consumer goods"): 0.38,
+    ("Human resources", "Veterinary medicine"): 0.08,
+
+    # ── IT and technology ──────────────────────────────────────────────────
+    ("IT and technology", "Journalism, publishing and communications"): 0.28,
+    ("IT and technology", "Marketing"): 0.55,
+    ("IT and technology", "Media and entertainment"): 0.48,
+    ("IT and technology", "Medicine and healthcare"): 0.38,
+    ("IT and technology", "Non-profit and social enterprise"): 0.30,
+    ("IT and technology", "Policy and advocacy"): 0.30,
+    ("IT and technology", "Psychology and social work"): 0.20,
+    ("IT and technology", "Public service and government"): 0.35,
+    ("IT and technology", "Real estate"): 0.35,
+    ("IT and technology", "Retail and consumer goods"): 0.42,
+
+    # ── Journalism, publishing and communications ──────────────────────────
+    ("Journalism, publishing and communications", "Law and legal services"): 0.30,
+    ("Journalism, publishing and communications", "Media and entertainment"): 0.75,
+    ("Journalism, publishing and communications", "Medicine and healthcare"): 0.20,
+    ("Journalism, publishing and communications", "Non-profit and social enterprise"): 0.42,
+    ("Journalism, publishing and communications", "Psychology and social work"): 0.30,
+    ("Journalism, publishing and communications", "Real estate"): 0.12,
+    ("Journalism, publishing and communications", "Retail and consumer goods"): 0.22,
+
+    # ── Law and legal services ─────────────────────────────────────────────
+    ("Law and legal services", "Marketing"): 0.20,
+    ("Law and legal services", "Media and entertainment"): 0.25,
+    ("Law and legal services", "Non-profit and social enterprise"): 0.42,
+    ("Law and legal services", "Retail and consumer goods"): 0.25,
+
+    # ── Marketing ─────────────────────────────────────────────────────────
+    ("Marketing", "Non-profit and social enterprise"): 0.40,
+    ("Marketing", "Policy and advocacy"): 0.35,
+    ("Marketing", "Psychology and social work"): 0.28,
+    ("Marketing", "Public service and government"): 0.25,
+    ("Marketing", "Real estate"): 0.38,
+
+    # ── Media and entertainment ────────────────────────────────────────────
+    ("Media and entertainment", "Medicine and healthcare"): 0.12,
+    ("Media and entertainment", "Non-profit and social enterprise"): 0.32,
+    ("Media and entertainment", "Psychology and social work"): 0.22,
+    ("Media and entertainment", "Public service and government"): 0.20,
+    ("Media and entertainment", "Real estate"): 0.12,
+    ("Media and entertainment", "Retail and consumer goods"): 0.40,
+
+    # ── Medicine and healthcare ────────────────────────────────────────────
+    ("Medicine and healthcare", "Non-profit and social enterprise"): 0.35,
+    ("Medicine and healthcare", "Psychology and social work"): 0.55,
+    ("Medicine and healthcare", "Retail and consumer goods"): 0.12,
+
+    # ── Non-profit and social enterprise ──────────────────────────────────
+    ("Non-profit and social enterprise", "Policy and advocacy"): 0.72,
+    ("Non-profit and social enterprise", "Real estate"): 0.18,
+    ("Non-profit and social enterprise", "Retail and consumer goods"): 0.22,
+
+    # ── Policy and advocacy ────────────────────────────────────────────────
+    ("Policy and advocacy", "Psychology and social work"): 0.50,
+    ("Policy and advocacy", "Public service and government"): 0.82,
+    ("Policy and advocacy", "Real estate"): 0.22,
+
+    # ── Psychology and social work ─────────────────────────────────────────
+    ("Psychology and social work", "Real estate"): 0.10,
+    ("Psychology and social work", "Retail and consumer goods"): 0.18,
+    ("Psychology and social work", "Veterinary medicine"): 0.22,
+
+    # ── Public service and government ──────────────────────────────────────
+    ("Public service and government", "Retail and consumer goods"): 0.15,
+    ("Public service and government", "Veterinary medicine"): 0.12,
+
+    # ── Real estate ────────────────────────────────────────────────────────
+    ("Real estate", "Retail and consumer goods"): 0.35,
+    ("Real estate", "Veterinary medicine"): 0.05,
+
+    # ── Retail and consumer goods ──────────────────────────────────────────
+    ("Retail and consumer goods", "Veterinary medicine"): 0.10,
+}
+
+# ------------------------------------------------------------
+# 8. Apply all mappings
+# ------------------------------------------------------------
+for group in (strong_within, cross, weak, manual, previously_defaulted):
     for (a, b), v in group.items():
         set_pair(a, b, v)
 
-# Apply 0.05 floor (except Retail–Biotech stays 0.15)
+# 0.05 floor overrides (applied last)
 for a, b in extremely_unlikely:
     if {a, b} != {"Retail and consumer goods", "Biotech, pharmaceutical, life sciences, and medical devices"}:
         set_pair(a, b, 0.05)
 
 # ------------------------------------------------------------
-# 8. Save
+# 9. Sanity check — no pair should still be 0.0
 # ------------------------------------------------------------
+zero_pairs = [
+    (fields[i], fields[j])
+    for i in range(len(fields))
+    for j in range(i + 1, len(fields))
+    if S.loc[fields[i], fields[j]] == 0.0
+]
+if zero_pairs:
+    raise ValueError(f"Missing pairs (still 0.0): {zero_pairs}")
 
+# ------------------------------------------------------------
+# 10. Save
+# ------------------------------------------------------------
 S.to_csv(BATCH_DIR / "field_similarity_matrix.csv", index=False)
 print(f"Shape: {S.shape}")
 print(f"Mean off-diagonal similarity: {S.values[np.triu_indices_from(S, 1)].mean():.3f}")
+print(f"Min off-diagonal similarity:  {S.values[np.triu_indices_from(S, 1)].min():.3f}")
+print(f"Max off-diagonal similarity:  {S.values[np.triu_indices_from(S, 1)].max():.3f}")
